@@ -42,7 +42,7 @@ $lua->eval("print(md5('123456'))");
 重写`exception`方法
 ```php
 $lua = new class() extends \Flysion\Lua\Lua {
-    protected function error2php(\LuaException $e)
+    protected function exception(\LuaException $e)
     {
         if(!isset($e->err['__throw__']))
         {
