@@ -91,7 +91,7 @@ function __meta_index(dest, key)
     if string.sub(key, 1, 1) == '@' then
         return __data2lua(__exception2lua(__read_property__(dest, string.sub(key, 2))))
     end
-    
+
     return __function2lua(__exception2lua(__call_method__(dest, key)))
 end
 
@@ -121,7 +121,7 @@ function __data2lua(...)
             parameters[k] = v
         end
     end
-    
+
     return table.unpack(parameters)
 end
 
@@ -139,22 +139,22 @@ end
 
 function __function2lua(r)
     return setmetatable(r, {
-        __gc = __meta_gc, 
-        __call = __meta_call 
+        __gc = __meta_gc,
+        __call = __meta_call
     })
 end
 
 function __object2lua(r)
     local m = {
-        __gc = __meta_gc, 
+        __gc = __meta_gc,
         __index = __meta_index,
-        __newindex = __meta_newindex, 
+        __newindex = __meta_newindex,
     }
-    
+
     if r.tostring then
         m.__tostring = __meta_tostring
     end
-    
+
     return setmetatable(r, m)
 end
 
@@ -168,7 +168,7 @@ function __exception2lua(r)
     if type(r) == 'table' and r.__exception__ then
         error(r)
     end
-    
+
     return r
 end
 
@@ -545,7 +545,7 @@ LUA
      * 1.lua方法是原生lua方法
      * 2.lua方法是php注册的
      *
-     * @param string $name
+     * @param string $name FIXME 不支持闭包
      * @param mixed[] $arguments
      * @param bool $useSelf
      * @return mxied

@@ -1,8 +1,9 @@
 # flysion/phplua
 基于PHP扩展（[http://pecl.php.net/package/lua](http://pecl.php.net/package/lua)）进行二次封装。特性:
-+ PHP的LUA无缝对接
-+ 可以从LUA里边抛出异常到PHP
-+ 利用LUA的metatable特性及时释放PHP内存
++ 解决内存持续增加的问题
++ 在LUA中很方便的调用PHP的函数和类方法
++ 及时释放PHP内存（利用 lua 的 metatable 特性）
++ 解决lua调用php方法抛出异常时，lua代码继续往下执行的问题
 
 ## 使用示例
 ### LUA调用PHP方法
