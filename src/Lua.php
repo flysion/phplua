@@ -2,7 +2,10 @@
 
 namespace Flysion\Lua;
 
-use Flysion\Lua\Exceptions\ModuleNotExistsException;
+use Flysion\Lua\Exceptions\CallException;
+use Flysion\Lua\Exceptions\EvalException;
+use Flysion\Lua\Exceptions\IncludeException;
+use Flysion\Lua\Exceptions\LoadFolderException;
 
 /**
  * @link https://www.php.net/manual/zh/book.lua.php
@@ -186,7 +189,7 @@ LUA
             }
         });
 
-        $this->interpreter->registerCallback('__read_property__', function($custom, $key) {
+        $this->interpreter->registerCallback('__read_property__', function ($custom, $key) {
             try {
                 return $this->data2lua($this->callbackStore->get($custom['index'])->{$key});
             } catch (\Throwable $e) {
@@ -194,7 +197,7 @@ LUA
             }
         });
 
-        $this->interpreter->registerCallback('__write_property__', function($custom, $key, $value) {
+        $this->interpreter->registerCallback('__write_property__', function ($custom, $key, $value) {
             try {
                 $this->callbackStore->get($custom['index'])->{$key} = $value;
             } catch (\Throwable $e) {
@@ -202,7 +205,7 @@ LUA
             }
         });
 
-        $this->interpreter->registerCallback('__gc__', function($custom) {
+        $this->interpreter->registerCallback('__gc__', function ($custom) {
             try {
                 $this->callbackStore->unRef($custom['index']);
             } catch (\Throwable $e) {
@@ -210,7 +213,7 @@ LUA
             }
         });
 
-        $this->interpreter->registerCallback('__call_func__', function($custom, ...$arguments) {
+        $this->interpreter->registerCallback('__call_func__', function ($custom, ...$arguments) {
             try {
                 return $this->data2lua(
                     call_user_func_array($this->callbackStore->get($custom['index']), $this->data2php($arguments))
@@ -220,7 +223,7 @@ LUA
             }
         });
 
-        $this->interpreter->registerCallback('__call_method__', function($custom, $key) {
+        $this->interpreter->registerCallback('__call_method__', function ($custom, $key) {
             try {
                 return $this->function2lua([$this->callbackStore->get($custom['index']), $key]);
             } catch (\Throwable $e) {
@@ -258,7 +261,7 @@ LUA
     {
         array_push($path, ...$this->packagePaths);
 
-        if(count($path) === 0) {
+        if (count($path) === 0) {
             return;
         }
 
@@ -276,30 +279,30 @@ LUA
      */
     protected function luaImport($name, ...$arguments)
     {
-        if(is_array($name)) {
+        if (is_array($name)) {
             $modules = [];
-            foreach($name as $k => $v) {
+            foreach ($name as $k => $v) {
                 $modules[is_numeric($k) ? $v : $k] = $this->luaImport($v);
             }
             return $modules;
         }
 
         $module = array_dot_get($this->modules, $name);
-        if(!is_null($module)) {
+        if (!is_null($module)) {
             return $this->data2lua($module);
         }
 
         $method = "lua_{$name}_module";
-        if(method_exists($this, $method)) {
+        if (method_exists($this, $method)) {
             return $this->data2lua($this->{$method}(...$arguments));
         }
 
         $method = "lua_{$name}_function";
-        if(method_exists($this, $method)) {
+        if (method_exists($this, $method)) {
             return $this->function2lua([$this, $method]); // 在 __call_func__ 进行异常捕获；在eval/call等方法throws
         }
 
-        if(function_exists($name)) {
+        if (function_exists($name)) {
             return $this->function2lua($name); // 在 __call_func__ 进行异常捕获；在eval/call等方法throws
         }
 
@@ -318,27 +321,27 @@ LUA
      */
     public function data2lua($value)
     {
-        if(is_scalar($value) || is_null($value)) {
+        if (is_scalar($value) || is_null($value)) {
             return $value;
         }
 
-        if(is_callable($value)) {
+        if (is_callable($value)) {
             return $this->function2lua($value);
         }
 
-        if(is_object($value)) {
+        if (is_object($value)) {
             return $this->object2lua($value);
         }
 
-        if(is_resource($value)) {
+        if (is_resource($value)) {
             return $this->resource2lua($value);
         }
 
-        if(isset($value['__custom__']) && $value['__custom__']) {
+        if (isset($value['__custom__']) && $value['__custom__']) {
             return $value;
         }
 
-        foreach($value as $k => $v) {
+        foreach ($value as $k => $v) {
             $value[$k] = $this->data2lua($v);
         }
 
@@ -354,7 +357,7 @@ LUA
      */
     protected function customize2lua(string $type, array $data)
     {
-        return array_merge($data, [ '__custom__' => true, 'type' => $type ]);
+        return array_merge($data, ['__custom__' => true, 'type' => $type]);
     }
 
     /**
@@ -430,7 +433,7 @@ LUA
      */
     protected function data2php($value)
     {
-        if(is_scalar($value) || is_null($value)) {
+        if (is_scalar($value) || is_null($value)) {
             return $value;
         }
 
@@ -438,11 +441,11 @@ LUA
             return $this->closure2php($value);
         }
 
-        if(isset($value['__custom__'])) {
+        if (isset($value['__custom__'])) {
             return $this->custom2php($value);
         }
 
-        foreach($value as $k => $v) {
+        foreach ($value as $k => $v) {
             $value[$k] = $this->data2php($v);
         }
 
@@ -463,11 +466,11 @@ LUA
      */
     protected function exception2php(\LuaException $e)
     {
-        if(isset($e->err['__exception__'])) {
+        if (isset($e->err['__exception__'])) {
             return $this->callbackStore->unRef($e->err['index']);
         }
 
-        if(method_exists($this, 'exception')) {
+        if (method_exists($this, 'exception')) {
             return $this->exception($e);
         }
 
@@ -485,7 +488,7 @@ LUA
      */
     protected function closure2php(\LuaClosure $closure)
     {
-        return \Closure::fromCallable(function() use($closure) {
+        return \Closure::fromCallable(function () use ($closure) {
             try {
                 return $this->data2php(
                     $this->interpreter->call($closure, $this->data2lua(func_get_args()))
@@ -556,6 +559,8 @@ LUA
             return $this->data2php($this->interpreter->call('__call', array_create($name, ...$this->data2lua($arguments)), $useSelf));
         } catch (\LuaException $e) {
             throw $this->exception2php($e);
+        } catch (\Throwable $e) {
+            throw new CallException($name, $arguments, $e);
         }
     }
 
@@ -571,6 +576,8 @@ LUA
             return $this->data2php($this->interpreter->eval($statements));
         } catch (\LuaException $e) {
             throw $this->exception2php($e);
+        } catch (\Throwable $e) {
+            throw new EvalException($statements, $e);
         }
     }
 
@@ -588,6 +595,8 @@ LUA
             $this->interpreter->include($main ?? "{$folder}/__main__.lua");
         } catch (\LuaException $e) {
             throw $this->exception2php($e);
+        } catch (\Throwable $e) {
+            throw new LoadFolderException($folder, $e);
         }
         return $this;
     }
@@ -603,6 +612,8 @@ LUA
             return $this->data2php($this->interpreter->include($file));
         } catch (\LuaException $e) {
             throw $this->exception2php($e);
+        } catch (\Throwable $e) {
+            throw new IncludeException($file, $e);
         }
     }
 
@@ -616,7 +627,7 @@ LUA
      */
     public function register($name, $callback)
     {
-        $this->interpreter->call('__register', [ $name, $this->function2lua($callback) ]);
+        $this->interpreter->call('__register', [$name, $this->function2lua($callback)]);
 
         return $this;
     }

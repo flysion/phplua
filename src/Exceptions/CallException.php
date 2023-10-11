@@ -6,13 +6,11 @@ class CallException extends Exception
 {
     private $name;
     private $arguments;
-    private $useSelf;
 
-    public function __construct($name, $arguments, $useSelf, \Throwable $e)
+    public function __construct($name, $arguments, \Throwable $e)
     {
-        parent::__construct($e->getMessage(), $e->getCode());
+        parent::__construct($e->getMessage(), $e->getCode(), $e);
         $this->name = $name;
-        $this->arguments = $arguments;
         $this->useSelf = $useSelf;
     }
 
@@ -30,13 +28,5 @@ class CallException extends Exception
     public function getArguments()
     {
         return $this->arguments;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getUseSelf()
-    {
-        return $this->useSelf;
     }
 }
